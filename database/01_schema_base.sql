@@ -1,0 +1,122 @@
+
+DROP TABLE TB_VALIDACAO CASCADE CONSTRAINTS;
+DROP TABLE TB_EVIDENCIA CASCADE CONSTRAINTS;
+DROP TABLE TB_REGISTRO_ACAO CASCADE CONSTRAINTS;
+DROP TABLE TB_USUARIO_GRUPO CASCADE CONSTRAINTS;
+DROP TABLE TB_ACAO_SUSTENTAVEL CASCADE CONSTRAINTS;
+DROP TABLE TB_PARCEIRO CASCADE CONSTRAINTS;
+DROP TABLE TB_GRUPO CASCADE CONSTRAINTS;
+DROP TABLE TB_USUARIO CASCADE CONSTRAINTS;
+
+
+CREATE TABLE TB_USUARIO (
+    id_usuario           INTEGER GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
+    nome_usuario         VARCHAR2(100) NOT NULL,
+    email_usuario        VARCHAR2(100) NOT NULL,
+    cpf_usuario          VARCHAR2(11)  NOT NULL,
+    senha_usuario        VARCHAR2(100) NOT NULL,
+    cidade_usuario       VARCHAR2(100) NOT NULL,
+    bairro_usuario       VARCHAR2(100) NOT NULL,
+    total_pontos_usuario INTEGER       DEFAULT 0 NOT NULL,
+    CONSTRAINT PK_TB_USUARIO PRIMARY KEY (id_usuario),
+    CONSTRAINT UK_USUARIO_CPF UNIQUE (cpf_usuario),
+    CONSTRAINT UK_USUARIO_EMAIL UNIQUE (email_usuario),
+    CONSTRAINT CK_USUARIO_PONTOS CHECK (total_pontos_usuario >= 0)
+);
+
+
+CREATE TABLE TB_GRUPO (
+    id_grupo               INTEGER GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
+    nome_grupo             VARCHAR2(100) NOT NULL,
+    tipo_grupo             VARCHAR2(30)  NOT NULL,
+    cidade_grupo           VARCHAR2(100),
+    bairro_grupo           VARCHAR2(100),
+    pontos_minimos_entrada INTEGER       DEFAULT 0 NOT NULL,
+    data_criacao           DATE          DEFAULT SYSDATE NOT NULL,
+    CONSTRAINT PK_TB_GRUPO PRIMARY KEY (id_grupo),
+    CONSTRAINT CK_GRUPO_TIPO CHECK (tipo_grupo IN ('ABERTO', 'PRIVADO')),
+    CONSTRAINT CK_GRUPO_PTS_MIN CHECK (pontos_minimos_entrada >= 0)
+);
+
+
+CREATE TABLE TB_PARCEIRO (
+    id_parceiro     INTEGER GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
+    nome_parceiro   VARCHAR2(100) NOT NULL,
+    tipo_parceiro   VARCHAR2(50)  NOT NULL,
+    cnpj_parceiro   VARCHAR2(14)  NOT NULL,
+    cidade_parceiro VARCHAR2(100) NOT NULL,
+    status_parceiro VARCHAR2(30)  DEFAULT 'ATIVO' NOT NULL,
+    CONSTRAINT PK_TB_PARCEIRO PRIMARY KEY (id_parceiro),
+    CONSTRAINT UK_PARCEIRO_CNPJ UNIQUE (cnpj_parceiro),
+    CONSTRAINT CK_PARCEIRO_STATUS CHECK (status_parceiro IN ('ATIVO', 'INATIVO', 'EM_ANALISE'))
+);
+
+
+CREATE TABLE TB_ACAO_SUSTENTAVEL (
+    id_acao              INTEGER GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
+    nome_acao            VARCHAR2(100) NOT NULL,
+    objetivo_sustentavel VARCHAR2(100) NOT NULL,
+    pontuacao_base       INTEGER       NOT NULL,
+    nivel_dificuldade    VARCHAR2(50)  NOT NULL,
+    descricao_acao       VARCHAR2(300),
+    CONSTRAINT PK_TB_ACAO_SUSTENTAVEL PRIMARY KEY (id_acao),
+    CONSTRAINT CK_ACAO_PONTUACAO CHECK (pontuacao_base > 0),
+    CONSTRAINT CK_ACAO_DIFICULDADE CHECK (nivel_dificuldade IN ('BAIXA', 'MEDIA', 'ALTA'))
+);
+
+
+CREATE TABLE TB_USUARIO_GRUPO (
+    id_usuario          INTEGER      NOT NULL,
+    id_grupo            INTEGER      NOT NULL,
+    data_entrada        DATE         DEFAULT SYSDATE NOT NULL,
+    pontos_no_grupo     INTEGER      DEFAULT 0 NOT NULL,
+    status_participacao VARCHAR2(30) DEFAULT 'ATIVO' NOT NULL,
+    CONSTRAINT PK_TB_USUARIO_GRUPO PRIMARY KEY (id_usuario, id_grupo),
+    CONSTRAINT FK_US_GRP_USUARIO FOREIGN KEY (id_usuario) REFERENCES TB_USUARIO (id_usuario),
+    CONSTRAINT FK_US_GRP_GRUPO FOREIGN KEY (id_grupo) REFERENCES TB_GRUPO (id_grupo),
+    CONSTRAINT CK_US_GRP_STATUS CHECK (status_participacao IN ('ATIVO', 'INATIVO', 'SUSPENSO'))
+);
+
+
+CREATE TABLE TB_REGISTRO_ACAO (
+    id_registro        INTEGER GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
+    id_acao            INTEGER       NOT NULL,
+    id_usuario         INTEGER       NOT NULL,
+    data_hora_registro TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    status_validacao   VARCHAR2(30)  DEFAULT 'PENDENTE' NOT NULL,
+    pontos_obtidos     INTEGER       DEFAULT 0 NOT NULL,
+    latitude           NUMBER(10,6),
+    longitude          NUMBER(10,6),
+    CONSTRAINT PK_TB_REGISTRO_ACAO PRIMARY KEY (id_registro),
+    CONSTRAINT FK_REG_ACAO_SUST FOREIGN KEY (id_acao) REFERENCES TB_ACAO_SUSTENTAVEL (id_acao),
+    CONSTRAINT FK_REG_ACAO_USUARIO FOREIGN KEY (id_usuario) REFERENCES TB_USUARIO (id_usuario),
+    CONSTRAINT CK_REG_STATUS CHECK (status_validacao IN ('PENDENTE', 'VALIDADO', 'REJEITADO'))
+);
+
+
+CREATE TABLE TB_EVIDENCIA (
+    id_evidencia        INTEGER GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
+    id_registro         INTEGER       NOT NULL,
+    tipo_evidencia      VARCHAR2(50)  NOT NULL,
+    url_arquivo         VARCHAR2(300) NOT NULL,
+    data_hora_envio     TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    descricao_evidencia VARCHAR2(300),
+    CONSTRAINT PK_TB_EVIDENCIA PRIMARY KEY (id_evidencia),
+    CONSTRAINT FK_EVID_REG_ACAO FOREIGN KEY (id_registro) REFERENCES TB_REGISTRO_ACAO (id_registro),
+    CONSTRAINT CK_EVID_TIPO CHECK (tipo_evidencia IN ('FOTO', 'VIDEO', 'DOCUMENTO', 'QR_CODE'))
+);
+
+
+CREATE TABLE TB_VALIDACAO (
+    id_validacao         INTEGER GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
+    id_parceiro          INTEGER       NOT NULL,
+    id_registro          INTEGER       NOT NULL,
+    data_hora_validacao  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    resultado_validacao  VARCHAR2(30)  NOT NULL,
+    observacao_validacao VARCHAR2(300),
+    CONSTRAINT PK_TB_VALIDACAO PRIMARY KEY (id_validacao),
+    CONSTRAINT UK_VALIDACAO_REGISTRO UNIQUE (id_registro),
+    CONSTRAINT FK_VALID_PARCEIRO FOREIGN KEY (id_parceiro) REFERENCES TB_PARCEIRO (id_parceiro),
+    CONSTRAINT FK_VALID_REG_ACAO FOREIGN KEY (id_registro) REFERENCES TB_REGISTRO_ACAO (id_registro),
+    CONSTRAINT CK_VALID_RESULTADO CHECK (resultado_validacao IN ('APROVADO', 'REPROVADO'))
+);
