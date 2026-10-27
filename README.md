@@ -5,7 +5,7 @@ JDK) que expõe o ecossistema de gamificação sustentável SoulUp: cadastro e
 login de usuários, registro de ações sustentáveis com validação (manual e
 por IA), conquistas, campeonatos ligados aos ODS e ranking por pontos.
 
-## 👩‍🏫 Nota para avaliação por matéria
+## Nota para avaliação por matéria
 
 Este back-end pode ser avaliado de forma **independente** do Front-End e
 do Data Modeler — testamos isso na prática, não é só teoria:
